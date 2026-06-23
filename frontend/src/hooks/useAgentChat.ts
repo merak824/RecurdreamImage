@@ -162,7 +162,7 @@ async function resultImageToBlob(ref: string): Promise<Blob> {
 
 export function useAgentChat() {
   const [ready, setReady] = useState(false);
-  const [hasApiKey] = useState(() => hasAnyApiKey());
+  const [hasApiKey, setHasApiKey] = useState(() => hasAnyApiKey());
   const [phase, setPhase] = useState<AgentPhase>('idle');
   const [messages, setMessages] = useState<AgentMessage[]>([]);
   const [images, setImages] = useState<AgentImageRecord[]>([]);
@@ -293,6 +293,18 @@ export function useAgentChat() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const refreshHasApiKey = () => {
+      setHasApiKey(hasAnyApiKey());
+    };
+
+    refreshHasApiKey();
+    window.addEventListener('nova-model-registry-updated', refreshHasApiKey);
+    return () => {
+      window.removeEventListener('nova-model-registry-updated', refreshHasApiKey);
+    };
+  }, []);
+
   const appendMessage = useCallback((message: AgentMessage) => {
     setMessages(prev => [...prev, message]);
     void putMessage(message);
@@ -354,7 +366,7 @@ export function useAgentChat() {
     };
     registerImage(record);
     return record;
-  }, [nextImgId, registerImage]);
+  }, [getAgentTextModelConfig, nextImgId, registerImage]);
 
   /** 重新生成已有图片的描述 */
   const redescribeImage = useCallback(async (imgId: string): Promise<string> => {
